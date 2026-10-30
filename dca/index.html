@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>点点菜</title>
+<style>
+body{margin:0;font-family:system-ui,sans-serif;background:#f5f5f5;padding-bottom:80px}
+h1{font-size:18px;padding:16px 16px 8px;margin:0}
+.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;padding:0 16px}
+.card{background:#fff;border-radius:10px;overflow:hidden}
+.card img{height:110px;width:100%;object-fit:cover;display:block;background:#eee}
+.info{padding:8px}
+.name{font-size:14px}
+.price{color:#ff5000;font-size:14px;margin:4px 0}
+.btn{width:100%;border:0;padding:6px;border-radius:6px;background:#ff5000;color:#fff;font-size:13px}
+.bar{position:fixed;left:0;right:0;bottom:0;background:#fff;padding:10px 16px;display:flex;justify-content:space-between;align-items:center;box-shadow:0 -2px 8px rgba(0,0,0,.05)}
+.bar button{border:0;background:#ff5000;color:#fff;padding:8px 18px;border-radius:20px;font-size:14px}
+.mask{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9;align-items:center;justify-content:center;padding:20px}
+.mask.on{display:flex}
+.sheet{background:#fff;border-radius:12px;padding:16px;width:100%;max-width:320px;font-size:14px;line-height:1.9;max-height:80vh;overflow:auto}
+.sheet h2{margin:0 0 8px;font-size:16px}
+.row{display:flex;justify-content:space-between}
+.sum{border-top:1px dashed #ddd;margin-top:8px;padding-top:8px;color:#ff5000;font-weight:600}
+.sheet button{margin-top:14px;width:100%;border:0;padding:9px;border-radius:8px;background:#ff5000;color:#fff;font-size:14px}
+</style>
+</head>
+<body>
+<h1>今天吃点啥</h1>
+<div class="grid" id="grid"></div>
+<div class="bar">
+  <span id="total">还没点</span>
+  <button onclick="submitOrder()">下单</button>
+</div>
+<div class="mask" id="mask"><div class="sheet" id="sheet"></div></div>
+
+<script>
+const dishes = [
+  { name: "红烧肉", price: 22, img: "hongshaorou.jpg" },
+  { name: "清炒时蔬", price: 8, img: "shicai.jpg" },
+  { name: "番茄炒蛋", price: 10, img: "fanqiechaodan.jpg" },
+  { name: "青椒肉丝", price: 12, img: "qingjiaorousi.jpg" },
+  { name: "土豆肉丝", price: 12, img: "tudourousi.jpg" },
+  { name: "火腿肠炒鸡蛋", price: 10, img: "huotuichangcaojidan.jpg" },
+  { name: "蒜苗炒腊肉", price: 18, img: "suanmiaochaolarou.jpg" },
+  { name: "青椒炒鸡蛋", price: 10, img: "qingjiaochaojidan.jpg" },
+  { name: "香菜炒牛肉", price: 18, img: "xiangcaichaoniur.jpg" },
+  { name: "芹菜炒牛肉", price: 18, img: "qincaichaoniurou.jpg" },
+  { name: "牛肉炖土豆", price: 25, img: "niurouduntudou.jpg" },
+  { name: "鱼香肉丝", price: 12, img: "yuxiangrousi.jpg" },
+  { name: "白灼大虾", price: 25, img: "baizhuodaxia.jpg" },
+  { name: "水煮肉片", price: 28, img: "shuizhuroupian.jpg" },
+  { name: "干锅排骨", price: 32, img: "ganguopaigu.jpg" },
+  { name: "干锅大虾", price: 32, img: "ganguodaxia.jpg" },
+  { name: "水煮鱼", price: 32, img: "shuizhuyu.jpg" },
+  { name: "糖醋排骨", price: 22, img: "tangcupaigu.jpg" },
+  { name: "肉末豇豆", price: 18, img: "roumojiangdou.jpg" },
+  { name: "仔姜鸭", price: 28, img: "zijiangya.jpg" },
+  { name: "蒜蓉花甲", price: 12, img: "saunronghuajia.jpg" },
+  { name: "蒜蓉粉丝蒸生蚝", price: 6, img: "suanrongfensizhengshenghao.jpg" },
+  { name: "粉蒸排骨", price: 22, img: "fenzhengpaigu.jpg" },
+  { name: "糖醋排骨", price: 22, img: "tangcupaigu.jpg" },
+  { name: "黄瓜皮蛋汤", price: 10, img: "huangguapidantang.jpg" },
+  { name: "酸菜粉丝汤", price: 10, img: "suancaifensitang.jpg" },
+  { name: "青菜豆腐汤", price: 10, img: "qingcaidoufutang.jpg" },
+  { name: "番茄蛋汤", price: 10, img: "fanqiedantang.jpg" },
+  { name: "米饭", price: 2, img: "mifan.jpg" }
+];
+
+const grid = document.getElementById('grid');
+grid.innerHTML = dishes.map((d,i)=>`
+  <div class="card">
+    <img src="${d.img}" alt="${d.name}">
+    <div class="info">
+      <div class="name">${d.name}</div>
+      <div class="price">￥${d.price}</div>
+      <button class="btn" id="btn${i}" onclick="add(${i})">加入</button>
+    </div>
+  </div>`).join('');
+
+const cart = {};
+
+function add(i){
+  cart[i] = (cart[i] || 0) + 1;
+  document.getElementById('btn'+i).textContent = '已加 ' + cart[i] + ' 份';
+  refresh();
+}
+
+function refresh(){
+  let n = 0, sum = 0;
+  for (const k in cart){ n += cart[k]; sum += cart[k] * dishes[k].price; }
+  document.getElementById('total').textContent = n ? `已选 ${n} 份 ￥${sum}` : '还没点';
+}
+
+function submitOrder(){
+  let n = 0, sum = 0, html = '';
+  for (const k in cart){
+    const d = dishes[k], q = cart[k];
+    n += q; sum += q * d.price;
+    html += `<div class="row"><span>${d.name} × ${q}</span><span>￥${q*d.price}</span></div>`;
+  }
+  if (!n) return alert('一样都没点呢');
+  document.getElementById('sheet').innerHTML =
+    `<h2>我点的菜</h2>${html}<div class="row sum"><span>共 ${n} 份</span><span>￥${sum}</span></div>
+     <button onclick="document.getElementById('mask').classList.remove('on')">好，截图发过去</button>`;
+  document.getElementById('mask').classList.add('on');
+}
+</script>
+</body>
+</html>
